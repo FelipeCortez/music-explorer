@@ -11,7 +11,11 @@
 (defn hello-world []
   [:div
    [:h1 (:text @app-state)]
-   [:h3 "Let's begin"]])
+   [:h3 "Let's begin"]
+   [:ul
+    [:li "The Mars Volta"]
+    [:li "Gorillaz"]
+    [:li "The Dear Hunter"]]])
 
 (defn mount [el]
   (reagent/render-component [hello-world] el))
