@@ -1,5 +1,6 @@
 (ns exporer-server.core
-  (:require [clojure.java.shell :as sh]))
+  (:require [clojure.java.shell :as sh]
+            [next.jdbc :as jdbc]))
 
 (def fields [:added :albumartist :album :country :path])
 
@@ -17,3 +18,7 @@
        (map (fn [coll] (zipmap fields coll)))))
 
 (sh-result->m (:out (sh/sh "beet" "ls" "-a" "added:2020" "-f" (fields->field-str fields))))
+
+(def datasource (jdbc/get-datasource "jdbc:sqlite:/data/Music/lib.db"))
+
+(jdbc/execute! datasource ["SELECT albumartist FROM albums LIMIT 10;"])
