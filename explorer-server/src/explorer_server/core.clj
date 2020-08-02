@@ -1,4 +1,4 @@
-(ns exporer-server.core
+(ns explorer-server.core
   (:require [clojure.java.shell :as sh]
             [next.jdbc :as jdbc]
             [next.jdbc.result-set :as rs]
@@ -26,15 +26,16 @@
 
 (def datasource (jdbc/get-datasource "jdbc:sqlite:/data/Music/lib.db"))
 
-(comment
-  (sh-result->m (:out (sh/sh "beet" "ls" "-a" "added:2020" "-f" (fields->field-str fields))))
-
+(defn last-added []
   (into []
         (map (fn [row] (-> row
                            (update :albums/artpath #(String. % "UTF-8"))
                            (assoc :albums/real-country (iso-code->country (:albums/country row)))
                            (update :albums/added (comp from-unix-time int)))))
-        (jdbc/plan datasource ["SELECT albumartist, album, country, added, artpath FROM albums ORDER BY added DESC LIMIT 10;"]))
+        (jdbc/plan datasource ["SELECT albumartist, albumartist_sort, album, year, month, day, original_year, original_month, original_day, albumtype, label, country, added, artpath FROM albums ORDER BY added DESC LIMIT 10;"])))
+
+(comment
+  (sh-result->m (:out (sh/sh "beet" "ls" "-a" "added:2020" "-f" (fields->field-str fields))))
 
   (from-unix-time last-added)
 
