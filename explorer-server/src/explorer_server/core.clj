@@ -2,7 +2,8 @@
   (:require [clojure.java.shell :as sh]
             [next.jdbc :as jdbc]
             [next.jdbc.result-set :as rs]
-            [tick.alpha.api :as t]))
+            [tick.alpha.api :as t]
+            [explorer-server.countries :refer [iso-code->country]]))
 
 (def fields [:added :albumartist :album :country :path])
 
@@ -30,7 +31,8 @@
 
   (into []
         (map (fn [row] (-> row
-                           (update :albums/artpath #(String. %))
+                           (update :albums/artpath #(String. % "UTF-8"))
+                           (assoc :albums/real-country (iso-code->country (:albums/country row)))
                            (update :albums/added (comp from-unix-time int)))))
         (jdbc/plan datasource ["SELECT albumartist, album, country, added, artpath FROM albums ORDER BY added DESC LIMIT 10;"]))
 
