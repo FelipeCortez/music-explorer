@@ -28,11 +28,14 @@
 
 (defn last-added []
   (into []
-        (map (fn [row] (-> row
-                           (update :albums/artpath #(String. % "UTF-8"))
-                           (assoc :albums/real-country (iso-code->country (:albums/country row)))
-                           (update :albums/added (comp from-unix-time int)))))
-        (jdbc/plan datasource ["SELECT albumartist, albumartist_sort, album, year, month, day, original_year, original_month, original_day, albumtype, label, country, added, artpath FROM albums ORDER BY added DESC LIMIT 10;"])))
+        (map (fn [row]
+               (-> row
+                   (update :albums/artpath #(when % (String. % "UTF-8")))
+                   (assoc :albums/real-country (iso-code->country (:albums/country row)))
+                   (update :albums/added (comp from-unix-time int)))))
+        (jdbc/plan datasource ["SELECT albumartist, albumartist_sort, album, year, month, day, original_year, original_month, original_day, albumtype, label, country, added, artpath FROM albums ORDER BY added DESC LIMIT 200;"])))
+
+(last-added)
 
 (comment
   (sh-result->m (:out (sh/sh "beet" "ls" "-a" "added:2020" "-f" (fields->field-str fields))))

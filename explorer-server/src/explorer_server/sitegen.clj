@@ -39,7 +39,17 @@
               (body content)])))
 
 (comment
-  (spit "/home/felipecortez/Dev/music-explorer/explorer-web/index.html"
-        (document {:title       "Music Explorer"
-                   :description "A music explorer"}
-                  [:h1 "Music Explorer"])))
+  (let [albums-hiccup (for [album (data/last-added)]
+                        [:li [:div
+                              [:img {:src (str "http://127.0.0.1:8002" (:albums/artpath album))
+                                     :width "150px"}]
+                              [:h1 (str (:albums/albumartist album)
+                                        " · "
+                                        (:albums/album album))]
+                              [:h2 (:albums/original_year album)]
+                              [:hr]]])]
+
+    (spit "/home/felipecortez/Dev/music-explorer/explorer-web/index.html"
+          (document {:title       "Music Explorer"
+                     :description "A music explorer"}
+                    [:ul albums-hiccup]))))
