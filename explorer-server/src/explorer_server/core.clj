@@ -26,23 +26,40 @@
 
 (def datasource (jdbc/get-datasource "jdbc:sqlite:/data/Music/lib.db"))
 
-(defn last-added []
-  (into []
-        (map (fn [row]
-               (-> row
-                   (update :albums/artpath #(when % (String. % "UTF-8")))
-                   (assoc :albums/real-country (iso-code->country (:albums/country row)))
-                   (update :albums/added (comp from-unix-time int)))))
-        (jdbc/plan datasource ["SELECT albumartist, albumartist_sort, album, year, month, day, original_year, original_month, original_day, albumtype, label, country, added, artpath FROM albums ORDER BY added DESC LIMIT 200;"])))
+(defn descriptors []
+  (into {}
+        (mapv (fn [row] [(:album_attributes/entity_id row) {(keyword "albums" (str "f-" (:album_attributes/key row)))
+                                                            (:album_attributes/value row)}])
+              (jdbc/execute! datasource ["SELECT id, entity_id, key, value FROM album_attributes LIMIT 200;"]))))
 
-(last-added)
+(get (descriptors) 2235)
+;; => #:album_attributes{:id 1, :entity_id 2232, :key "descriptors", :value "soft, instrumental, calm"}
+
+(defn last-added []
+  (let [descriptors (descriptors)]
+   (mapv (fn [row]
+          (-> row
+              (update :albums/artpath #(when % (String. % "UTF-8")))
+              (assoc :albums/real-country (iso-code->country (:albums/country row)))
+              (merge (get descriptors (:albums/id row)))
+              (update :albums/added (comp from-unix-time int))))
+        (jdbc/execute! datasource ["SELECT id, albumartist, albumartist_sort, album, year, month, day, original_year, original_month, original_day, albumtype, label, country, added, artpath FROM albums ORDER BY added DESC;"]))))
+
+(def all-albums (last-added))
+
+(filter (fn [{:albums/keys [albumartist]}]
+          (re-seq #"Ronin" albumartist))
+        all-albums)
 
 (comment
   (sh-result->m (:out (sh/sh "beet" "ls" "-a" "added:2020" "-f" (fields->field-str fields))))
 
   (from-unix-time last-added)
 
-  (->unix-time (t/now)))
+  (->unix-time (t/now))
+
+  (last-added)
+
   (require '[datascript.core :as d])
 
   (def conn (d/create-conn {:name {:db/unique :db.unique/identity}}))
