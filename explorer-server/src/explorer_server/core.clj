@@ -43,3 +43,18 @@
   (from-unix-time last-added)
 
   (->unix-time (t/now)))
+  (require '[datascript.core :as d])
+
+  (def conn (d/create-conn {:name {:db/unique :db.unique/identity}}))
+
+  (d/transact! conn [{:name "Felipe"
+                      :likes "playing the guitar"}
+                     {:name "Toni"
+                      :likes "talking"}])
+
+  (d/q '[:find ?n ?l
+         :where
+         [?e :name ?n]
+         [?e :likes ?l]]
+       @conn)
+  )

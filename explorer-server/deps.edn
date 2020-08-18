@@ -6,6 +6,7 @@
            ring                   {:mvn/version "1.8.0"}
            ring/ring-json         {:mvn/version "0.5.0"}
            buddy/buddy-sign       {:mvn/version "3.1.0"}
-           tick                   {:mvn/version "0.4.23-alpha"}}
+           tick                   {:mvn/version "0.4.23-alpha"}
+           datascript             {:mvn/version "1.0.0"}}
  :paths   ["src" "resources"]
  :aliases {:depstar {:extra-deps {seancorfield/depstar {:mvn/version "0.5.2"}}}}}
