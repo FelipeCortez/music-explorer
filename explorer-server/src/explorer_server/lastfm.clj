@@ -16,7 +16,7 @@
                  "&method=user.getrecenttracks"
                  "&user=FelipeSah"
                  "&period=1month"
-                 "&limit=100"
+                 "&limit=200"
                  "&format=json"
                  "&page=" page)))
 
@@ -26,18 +26,52 @@
 
 (defn tracks->flat [tracks]
   (let [{:strs [artist album name mbid date]} tracks]
-    [(get artist "#text")
-     (get album "#text")
-     name
-     mbid
-     (when date
-       (from-unix-time (parse-int (get date "uts"))))]))
+    {:artist (get artist "#text")
+     :album (get album "#text")
+     :name name
+     :mbid mbid
+     :date (when date
+             (from-unix-time (parse-int (get date "uts"))))}))
 
-(let [{attrs "@attr", tracks "track"}
-      (get (json/parse-string (:body recent-1))
-           "recenttracks")
+(defn vs->m
+  "turn a seq of vectors into a map indexed by f (like group-by for groups of a single element)"
+  [vs f]
+  (into {} (map (fn [v] [(f v) v]) vs)))
 
-      {page "page", total-pages "totalPages"}
-      attrs]
-  [(Integer/parseInt page) (Integer/parseInt total-pages)
-   (map tracks->flat tracks)])
+(defonce results (atom {}))
+(defonce raw-results (atom []))
+
+(comment
+  (reset! results {})
+  (reset! raw-results [])
+  (count @results)
+  (take 50 @results)
+
+  (take 50 @raw-results))
+
+(def shy-merge #(merge %2 %1))
+
+(defn parse-tracks [tracks]
+  (-> (map tracks->flat tracks)
+      (vs->m :date)
+      (dissoc nil)))
+
+(comment
+  (count @raw-results)
+  (count @results))
+
+(comment
+  (loop [page 864]
+    (println "attempting " page)
+    (let [{attrs "@attr", tracks "track"}
+          (get (json/parse-string (:body (get-recent page))) "recenttracks")
+
+          {page-api "page", total-pages "totalPages"} attrs]
+      (println "got " page-api " out of " total-pages)
+      (swap! results     shy-merge (parse-tracks tracks))
+      (swap! raw-results conj      tracks)
+      (if (= page-api total-pages)
+        @results
+        (do
+          (Thread/sleep 2000)
+          (recur (inc page)))))))
