@@ -57,8 +57,27 @@
       (dissoc nil)))
 
 (comment
-  (count @raw-results)
-  (count @results))
+  (def all-unparsed (into #{} cat @raw-results))
+
+  (spit "/home/felipecortez/scrobbles.edn" all-unparsed)
+
+  (require '[clojure.edn :as edn])
+
+  (with-open [r (clojure.java.io/reader "/home/felipecortez/scrobbles.edn")]
+    (def serialized-scrobbles (edn/read (java.io.PushbackReader. r))))
+
+  (count serialized-scrobbles)
+
+  (def last-page (get (get (json/parse-string (:body (get-recent 1))) "recenttracks") "track"))
+  (def second-to-last-page (get (get (json/parse-string (:body (get-recent 2))) "recenttracks") "track"))
+
+  (clojure.set/subset? (into #{} last-page) serialized-scrobbles)
+  (clojure.set/subset? (into #{} second-to-last-page) serialized-scrobbles)
+
+  (map (fn [[k v]] [k (count v)])
+       (sort-by #(- (count (second %))) (group-by :artist all-parsed)))
+
+  (take 10 @results))
 
 (comment
   (loop [page 864]
