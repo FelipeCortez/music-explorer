@@ -74,4 +74,6 @@
          [?e :name ?n]
          [?e :likes ?l]]
        @conn)
+
+  ;;  beet modify -a "albumartist:$(cmus-remote -Q | awk '/tag artist / { for (i=3; i<=NF; i++) printf "%s ", $i } END { printf "\n" }')" -f '$added $albumartist - $album' descriptors="electronic, sampling"
   )
