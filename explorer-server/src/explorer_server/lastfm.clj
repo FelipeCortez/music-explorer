@@ -3,7 +3,20 @@
             [cheshire.core :as json]
             [clojure.walk :as walk]
             [clojure.java.io :as io]
-            [tick.alpha.api :as t]))
+            [tick.alpha.api :as t])
+  (:import [java.util.zip GZIPInputStream]
+           [java.nio.charset StandardCharsets]))
+
+
+(defn from-zip-file
+  [file]
+  (with-open [in (java.util.zip.GZIPInputStream. (file))]
+    (clojure.edn/read (java.io.PushbackReader. (java.io.InputStreamReader. in java.nio.charset.StandardCharsets/UTF_8)))))
+
+(defn gzipped-input-stream->str [input-stream]
+  (with-open [out (java.io.StringWriter.)]
+    (IOUtils/copy input-stream out Charsets/UTF_8)
+    (.toString out)))
 
 (defn from-unix-time [secs]
   (t/>> (t/epoch) (t/new-duration secs :seconds)))
@@ -65,6 +78,9 @@
 
   (with-open [r (clojure.java.io/reader "/home/felipecortez/scrobbles.edn")]
     (def serialized-scrobbles (edn/read (java.io.PushbackReader. r))))
+
+  (with-open [r (java.util.zip.GZIPInputStream. (clojure.java.io/input-stream "/home/felipecortez/scrobbles.edn.gz"))]
+    (def serialized-scrobbles (edn/read (java.io.PushbackReader. (java.io.InputStreamReader. r java.nio.charset.StandardCharsets/UTF_8)))))
 
   (count serialized-scrobbles)
 
