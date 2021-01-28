@@ -47,47 +47,61 @@
              (+ current (- 10 (mod current 10))))
       (conj coll last))))
 
-(defn year-to-pixel [first-year last-year
-                     first-coord last-coord
-                     year]
-  (let [normalized-last (- last-coord first-coord)]
-    normalized-last))
+(defn remap [[from-1 to-1] [from-2 to-2] n]
+  (let [range-1 (- to-1 from-1)
+        range-2 (- to-2 from-2)
+        percentage (/ (- n from-1) range-1)]
+    (+ from-2 (* range-2 percentage))))
 
-(year-to-pixel 1945 2020 16 800 1955)
+(def data-example
+  [{:title "Sketches of Spain" :year 1960}
+   {:title "Patagonian Rats" :year 2010}
+   {:title "Carlos, Erasmo" :year 1971}
+   {:title "Heaven or Las Vegas " :year 1990}])
 
-(decades 1945 2020)
+(mapv (fn [{:keys [year] :as m}]
+        (assoc m :x (float (remap [1945 2020] [16 800] year))))
+      data-example)
+
+(defn together [& xs] (into [] (sequence cat xs)))
 
 (defn timeline []
   (let [initial-year 1945 ;; https://en.wikipedia.org/wiki/History_of_sound_recording#The_Magnetic_Era_(1945_to_1975)
-        end-year     (t/int (t/year (t/now)))]
-    [:svg {:viewBox "0 0 840 360"
-           :width   "840px"
-           :height  "360px"
-           :xlmns   "http://www.w3.org/2000/svg"}
-     [:line {:x1     16.5 :x2 16.5
-             :y1     0    :y2 300
-             :stroke "black"}]
-     [:text {:transform "translate(16, 320) rotate(45)"}
-      initial-year]
-     [:line {:x1     800.5 :x2 800.5
-             :y1     0    :y2 300
-             :stroke "black"}]
-     [:text {:transform "translate(800, 320) rotate(45)"}
-      end-year]]))
+        end-year     (t/int (t/year (t/now)))
+        year-range   [initial-year end-year]]
+    (together
+     [:svg {:viewBox "0 0 840 360"
+            :width   "840px"
+            :height  "360px"
+            :xlmns   "http://www.w3.org/2000/svg"}]
+     (let [strong (set (decades initial-year end-year))]
+       (reduce (fn [coll year]
+                 (let [x    (remap year-range [16.5 800.5] year)
+                       snap (+ 0.5 (int x))]
+                   (if (strong year)
+                     (conj coll
+                           [:line {:x1     snap :x2 snap
+                                   :y1     0    :y2 300
+                                   :stroke "gray"}]
+                           [:text {:transform (format "translate(%s, 320) rotate(45)"
+                                                      (int x))}
+                            year])
+                     (conj coll
+                           [:line {:x1     snap :x2 snap
+                                   :y1     0    :y2 300
+                                   :stroke "lightgray"}]))))
+               []
+               (range initial-year (inc end-year))))
+     (reduce (fn [coll {:keys [title year]}]
+               (let [x (remap year-range [16.5 800.5] year)]
+                 (conj coll
+                       [:circle {:fill "#DD0000" :cx x :cy 150 :r 5}]
+                       [:text {:transform (format "translate(%s, 170) rotate(45)" x)}
+                        title])))
+             []
+             data-example))))
 
-(let [albums-hiccup (for [album (data/last-added)]
-                      [:li [:div
-                            [:img {:src (str "http://127.0.0.1:8002" (:albums/artpath album))
-                                   :width "150px"}]
-                            [:h1 (str (:albums/albumartist album)
-                                      " · "
-                                      (:albums/album album))]
-                            [:h2 (:albums/original_year album)]
-                            [:hr]]])]
-
-  (spit "/home/felipecortez/Dev/music-explorer/explorer-web/index.html"
+(spit "/home/felipecortez/Dev/music-explorer/explorer-web/index.html"
         (document {:title       "Music Explorer"
                    :description "A music explorer"}
-                  (list
-                   (timeline)
-                   [:ul albums-hiccup]))))
+                  (timeline)))
